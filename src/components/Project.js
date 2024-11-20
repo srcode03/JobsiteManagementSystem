@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import {
   Dialog,
   DialogActions,
@@ -25,34 +26,57 @@ const Project = () => {
     department: '',
     numberOfEmployees: '',
     budget: '',
-    description: ''
+    description: '',
   });
 
+  // Fetch projects from the database on component load
+  useEffect(() => {
+    axios
+      .get('http://localhost:8000/projects')
+      .then((response) => setProjects(response.data.projects))
+      .catch((error) => console.error('Error fetching projects:', error));
+  }, []);
+
+  // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
+  // Submit the new project to the database
   const handleSubmit = (e) => {
     e.preventDefault();
-    setProjects(prev => [...prev, { ...formData, id: Date.now() }]);
-    setFormData({
-      projectName: '',
-      location: '',
-      startDate: '',
-      department: '',
-      numberOfEmployees: '',
-      budget: '',
-      description: ''
-    });
-    setOpen(false);
+
+    axios
+      .post('http://localhost:8000/projects', formData)
+      .then((response) => {
+        // Add the newly created project to the state
+        setProjects((prev) => [...prev, { ...formData, id: response.data.id }]);
+        setFormData({
+          projectName: '',
+          location: '',
+          startDate: '',
+          department: '',
+          numberOfEmployees: '',
+          budget: '',
+          description: '',
+        });
+        setOpen(false);
+      })
+      .catch((error) => console.error('Error adding project:', error));
   };
 
+  // Delete a project by ID
   const deleteProject = (id) => {
-    setProjects(prev => prev.filter(project => project.id !== id));
+    axios
+      .delete(`http://localhost:8000/projects/${id}`)
+      .then(() => {
+        setProjects((prev) => prev.filter((project) => project.id !== id));
+      })
+      .catch((error) => console.error('Error deleting project:', error));
   };
 
   return (
@@ -164,8 +188,14 @@ const Project = () => {
         </DialogContent>
       </Dialog>
 
-      <div style={{ display: 'grid', gap: '20px', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
-        {projects.map(project => (
+      <div
+        style={{
+          display: 'grid',
+          gap: '20px',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+        }}
+      >
+        {projects.map((project) => (
           <Card key={project.id}>
             <CardHeader
               action={
@@ -176,12 +206,24 @@ const Project = () => {
               title={project.projectName}
             />
             <CardContent>
-              <Typography variant="body2"><strong>Location:</strong> {project.location}</Typography>
-              <Typography variant="body2"><strong>Start Date:</strong> {project.startDate}</Typography>
-              <Typography variant="body2"><strong>Department:</strong> {project.department}</Typography>
-              <Typography variant="body2"><strong>Employees:</strong> {project.numberOfEmployees}</Typography>
-              <Typography variant="body2"><strong>Budget:</strong> ${project.budget}</Typography>
-              <Typography variant="body2"><strong>Description:</strong> {project.description}</Typography>
+              <Typography variant="body2">
+                <strong>Location:</strong> {project.location}
+              </Typography>
+              <Typography variant="body2">
+                <strong>Start Date:</strong> {project.startDate}
+              </Typography>
+              <Typography variant="body2">
+                <strong>Department:</strong> {project.department}
+              </Typography>
+              <Typography variant="body2">
+                <strong>Employees:</strong> {project.numberOfEmployees}
+              </Typography>
+              <Typography variant="body2">
+                <strong>Budget:</strong> ${project.budget}
+              </Typography>
+              <Typography variant="body2">
+                <strong>Description:</strong> {project.description}
+              </Typography>
             </CardContent>
           </Card>
         ))}
